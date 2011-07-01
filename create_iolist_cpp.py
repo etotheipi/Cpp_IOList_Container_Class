@@ -1,5 +1,6 @@
 from os import path
 import hashlib
+from sys import argv
 
 
 
@@ -49,6 +50,7 @@ nextCode = \
 #define _IOLIST_H_
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -63,7 +65,8 @@ using namespace std;
 //  This class was created by a python script, specifically designed
 //  to construct the individual methods for each datatype.  C++ 
 //  really doesn't like mixed data types, but I really want them,
-//  so I'm doing this anyway.
+//  so I'm doing this anyway.  A copy of the python is included at the
+//  end of this file
 //
 //  -----------------------------------------------
 //  VERSION_HASH:  %s
@@ -146,10 +149,16 @@ private:
 
 public:
 
+   IOList(void);
    IOLIST_TYPE getType(string key);
+
+   void clearIOList(void);
+   void writeIOList(string filename);
+   void readIOList(string filename);
    void writeIOList(ostream & os);
    void readIOList(istream & is);
 
+   int size(void) {return (int)key_list_.size();}
    string getVersionHash(void) { return versionHash_; }
    bool compareVersionHash(string hash) { return (hash.compare(versionHash_)==0);}
 
@@ -164,14 +173,13 @@ for T,N in zip(typelistType, typelistName):
    h('   map< string, %s > map_%s_;' % (T,N))
    
    
-h('public:')
+h('\npublic:')
 
 
 # Write all the get and set methods
 for T,N in zip(typelistType, typelistName):
    nextCode = \
-   """
-   // Enable datatype %s (%s)
+   """   // Enable datatype %s (%s)
    %s get_%s_(string key);
    void set_%s_(string key, %s const & val);
    void write_%s_(string key, ostream & os);
@@ -182,6 +190,24 @@ for T,N in zip(typelistType, typelistName):
 # Finally close the class declaration
 h('};') 
 h('#endif')
+
+
+h('')
+h('')
+h('// The following is a copy of the python script used to create IOList sources')
+h('// The script includes a copy of itself in the header file it creates!')
+h('/','')
+h('*')
+
+pyfile = open(argv[0],'r');
+pyscript = pyfile.readlines()
+pyfile.close();
+dot_h.writelines(pyscript)
+h('')
+h('')
+h('*','')
+h('/')
+
 
 dot_h.close()
 
@@ -214,10 +240,112 @@ void IOList::writeKeyList(ostream & os)
       cout << key << " " << map_typename_[key] << endl;
    }
 }
+
+IOList::IOList(void)
+{
 """
 
 cpp(nextCode % (versionHash,))
 
+for T,N in zip(typelistType, typelistName):
+   nextCode = "   map_%s_ = map< string, %s >();"
+   cpp(nextCode % (N,T))
+
+cpp("}")
+
+### Method to clear an IOList;
+nextCode = \
+"""
+void IOList::clearIOList(void)
+{
+   map_types_.clear();
+   map_typename_.clear();
+   key_list_.clear();
+"""
+cpp(nextCode)
+
+for T,N in zip(typelistType, typelistName):
+   cpp('   map_%s_.clear();' % (N,))
+
+cpp('}')
+   
+
+### Method to write an entire IOList to file
+nextCode = \
+"""
+void IOList::writeIOList(string filename)
+{
+   ofstream os(filename.c_str(), ios::out);
+   writeIOList(os);
+   os.close();
+}
+void IOList::writeIOList(ostream & os)
+{
+   os << "IOLIST_SIZE " << size() << endl;
+   for(int i=0; i<(int)size(); i++)
+   {
+      string key = key_list_[i];
+      IOLIST_TYPE theType = map_types_[key];
+      os << map_typename_[key] << " " << key << " ";
+      switch(theType)
+      {
+"""
+cpp(nextCode)
+
+for T,N in zip(typelistType, typelistName):
+   cpp('         case IOLIST_%s: write_%s_(key, os);  break;' % (N,N))
+
+cpp('         default: os << "***ERROR: Key " << key << " not in key_list_!" << endl;')
+cpp('      }')
+cpp('      os << endl;')
+cpp('   }')
+cpp('}')
+
+
+### Method to read an entire IOList from file
+nextCode = \
+"""
+void IOList::readIOList(string filename)
+{
+   ifstream is(filename.c_str(), ios::in);
+   readIOList(is);
+   is.close();
+}
+void IOList::readIOList(istream & is)
+{
+   clearIOList();
+
+   char deadStr[256];
+   char typeStr[256];
+   char nameStr[256];
+   is >> deadStr;
+   
+   int sz;
+   is >> sz;
+   
+   for(int i=0; i<sz; i++)
+   {
+      is >> typeStr;
+      is >> nameStr;
+      string theType = string(typeStr);
+      string theName = string(nameStr);
+      
+"""
+cpp(nextCode)
+
+cpp('      ','')
+for T,N in zip(typelistType, typelistName):
+   cpp('if( theType.compare("%s") == 0 )' % (N,))
+   cpp('         read_%s_(nameStr, is);' % (N,))
+   cpp('      else ', '')
+
+cpp('\n         cout << "***ERROR:  Unknown type-string! " << theType << endl;')
+
+cpp('   }')
+cpp('}')
+
+
+### Finally, define all the get/set methods for each datatype
 for RWCode, T,N in zip(typelistRWCode, typelistType, typelistName):
    nextCode = """
 
@@ -227,7 +355,6 @@ for RWCode, T,N in zip(typelistRWCode, typelistType, typelistName):
    assert(map_%s_.find(key) != map_%s_.end());
    return map_%s_[key];
 }
-
 void IOList::set_%s_(string key, %s const & val)
 {
    map_%s_[key] = val; 
@@ -235,7 +362,6 @@ void IOList::set_%s_(string key, %s const & val)
    map_types_[key] = IOLIST_%s;
    key_list_.push_back(key);
 }
-
 void IOList::write_%s_(string key, ostream & os)
 {
    %s
