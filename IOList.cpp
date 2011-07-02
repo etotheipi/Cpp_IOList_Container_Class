@@ -1,7 +1,6 @@
 
 #include "IOList.h"
 
-string IOList::versionHash_ = "aeba7045b138314589763e9731157c6e";
 
 IOLIST_TYPE IOList::getType(string key) 
 {
@@ -34,6 +33,23 @@ IOList::IOList(void)
    map_vector_int_ = map< string, vector<int> >();
    map_vector_short_ = map< string, vector<short> >();
    map_vector_bool_ = map< string, vector<bool> >();
+}
+
+IOList::IOList(string filename)
+{
+
+   map_float_ = map< string, float >();
+   map_double_ = map< string, double >();
+   map_int_ = map< string, int >();
+   map_short_ = map< string, short >();
+   map_bool_ = map< string, bool >();
+   map_string_ = map< string, string >();
+   map_vector_float_ = map< string, vector<float> >();
+   map_vector_double_ = map< string, vector<double> >();
+   map_vector_int_ = map< string, vector<int> >();
+   map_vector_short_ = map< string, vector<short> >();
+   map_vector_bool_ = map< string, vector<bool> >();
+   readIOList(filename);
 }
 
 void IOList::clearIOList(void)

@@ -68,6 +68,11 @@ int main(void)
    iol2.readIOList("IOListToFile.txt");
    iol2.writeIOList(cout);
 
+   cout << endl << endl;
+   cout << "Testing direct read list from file" << endl << endl;
+   IOList iol3("IOListToFile.txt");
+   iol3.writeIOList(cout);
+   
 
    return 0;
 }

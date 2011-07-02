@@ -73,10 +73,10 @@ for tp in typelistFull :
    typelistName.append(t)
 
 
-versionHash = '0000000000000000'
+versionHash = '00000000'
 try:
    import hashlib
-   versionHash = hashlib.md5('_'.join(typelistType)).hexdigest();
+   versionHash = hashlib.md5('_'.join(typelistType)).hexdigest()[:8]
 except(ImportError):
    print '***WARNING: hashlib module not present, cannot enable version-checking'
 
@@ -187,11 +187,11 @@ private:
    map<string, IOLIST_TYPE> map_types_;
    map<string, string> map_typename_;
    vector<string> key_list_;
-   static string versionHash_;
 
 public:
 
    IOList(void);
+   IOList(string filename);
    IOLIST_TYPE getType(string key);
 
    void clearIOList(void);
@@ -201,15 +201,15 @@ public:
    void readIOList(istream & is);
 
    int size(void) {return (int)key_list_.size();}
-   string getVersionHash(void) { return versionHash_; }
-   bool compareVersionHash(string hash) { return (hash.compare(versionHash_)==0);}
+   string getVersionHash(void) { return string("%s"); }
+   bool compareVersionHash(string hash) { return (hash.compare("%s")==0);}
 
    void writeKeyList(ostream & os);
 
 private:
 """
 
-h(nextCode)
+h(nextCode % (versionHash, versionHash))
 
 for T,N in zip(typelistType, typelistName):
    h('   map< string, %s > map_%s_;' % (T,N))
@@ -264,7 +264,6 @@ def cpp(s, end='\n'):
 nextCode = """
 #include "IOList.h"
 
-string IOList::versionHash_ = "%s";
 
 IOLIST_TYPE IOList::getType(string key) 
 {
@@ -287,11 +286,26 @@ IOList::IOList(void)
 {
 """
 
-cpp(nextCode % (versionHash,))
+cpp(nextCode)
 
 for T,N in zip(typelistType, typelistName):
    nextCode = "   map_%s_ = map< string, %s >();"
    cpp(nextCode % (N,T))
+
+cpp("}")
+
+nextCode = """
+IOList::IOList(string filename)
+{
+"""
+
+cpp(nextCode)
+
+for T,N in zip(typelistType, typelistName):
+   nextCode = "   map_%s_ = map< string, %s >();"
+   cpp(nextCode % (N,T))
+
+cpp('   readIOList(filename);')
 
 cpp("}")
 
