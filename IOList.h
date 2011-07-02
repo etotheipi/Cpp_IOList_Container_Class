@@ -135,67 +135,67 @@ private:
 
 public:
    // Enable datatype float (float)
-   float get_float_(string key);
+   float const & get_float_(string key);
    void set_float_(string key, float const & val);
    void write_float_(string key, ostream & os);
    void read_float_ (string key, istream & is);
    
    // Enable datatype double (double)
-   double get_double_(string key);
+   double const & get_double_(string key);
    void set_double_(string key, double const & val);
    void write_double_(string key, ostream & os);
    void read_double_ (string key, istream & is);
    
    // Enable datatype int (int)
-   int get_int_(string key);
+   int const & get_int_(string key);
    void set_int_(string key, int const & val);
    void write_int_(string key, ostream & os);
    void read_int_ (string key, istream & is);
    
    // Enable datatype short (short)
-   short get_short_(string key);
+   short const & get_short_(string key);
    void set_short_(string key, short const & val);
    void write_short_(string key, ostream & os);
    void read_short_ (string key, istream & is);
    
    // Enable datatype bool (bool)
-   bool get_bool_(string key);
+   bool const & get_bool_(string key);
    void set_bool_(string key, bool const & val);
    void write_bool_(string key, ostream & os);
    void read_bool_ (string key, istream & is);
    
    // Enable datatype string (string)
-   string get_string_(string key);
+   string const & get_string_(string key);
    void set_string_(string key, string const & val);
    void write_string_(string key, ostream & os);
    void read_string_ (string key, istream & is);
    
    // Enable datatype vector_float (vector<float>)
-   vector<float> get_vector_float_(string key);
+   vector<float> const & get_vector_float_(string key);
    void set_vector_float_(string key, vector<float> const & val);
    void write_vector_float_(string key, ostream & os);
    void read_vector_float_ (string key, istream & is);
    
    // Enable datatype vector_double (vector<double>)
-   vector<double> get_vector_double_(string key);
+   vector<double> const & get_vector_double_(string key);
    void set_vector_double_(string key, vector<double> const & val);
    void write_vector_double_(string key, ostream & os);
    void read_vector_double_ (string key, istream & is);
    
    // Enable datatype vector_int (vector<int>)
-   vector<int> get_vector_int_(string key);
+   vector<int> const & get_vector_int_(string key);
    void set_vector_int_(string key, vector<int> const & val);
    void write_vector_int_(string key, ostream & os);
    void read_vector_int_ (string key, istream & is);
    
    // Enable datatype vector_short (vector<short>)
-   vector<short> get_vector_short_(string key);
+   vector<short> const & get_vector_short_(string key);
    void set_vector_short_(string key, vector<short> const & val);
    void write_vector_short_(string key, ostream & os);
    void read_vector_short_ (string key, istream & is);
    
    // Enable datatype vector_bool (vector<bool>)
-   vector<bool> get_vector_bool_(string key);
+   vector<bool> const & get_vector_bool_(string key);
    void set_vector_bool_(string key, vector<bool> const & val);
    void write_vector_bool_(string key, ostream & os);
    void read_vector_bool_ (string key, istream & is);
@@ -212,7 +212,8 @@ import hashlib
 from sys import argv
 
 
-
+################################################################################
+## Master list of datatypes to be included in the IOList class
 typelistFull = [ ['float',                         'STD_RW'], \
                  ['double',                        'STD_RW'], \
                  ['int',                           'STD_RW'], \
@@ -224,6 +225,47 @@ typelistFull = [ ['float',                         'STD_RW'], \
                  ['vector<int>',                   'ARRAY_1D_SQ_BRKT_STD_RW'], \
                  ['vector<short>',                 'ARRAY_1D_SQ_BRKT_STD_RW'], \
                  ['vector<bool>',                  'CUSTOM'] ]
+
+################################################################################
+## Any classes requiring custom read/write code should be defined here
+##
+## The signatures for the write and read methods are: 
+##    void IOList::write_%s_(string key, ostream & os)
+##    void IOList::read_%s_(string key, istream & is)
+customWriteCode = {}
+customReadCode = {}
+
+customWriteCode['string'] = """
+   os << get_string_(key);
+   """
+customReadCode['string'] = """
+   char temp[256];
+   string out;
+   is >> temp;
+   out = string(temp);
+   set_string_(key, out);
+"""
+
+customWriteCode['vector<bool>'] = """
+   vector<bool> const & vb = get_vector_bool_(key);
+   int sz = (int)vb.size();
+   os << sz << " ";
+   for(int i=0; i<sz; i++)
+      os << vb[i] << " ";
+   """
+customReadCode['vector<bool>'] = """
+   vector<bool> vb(0);
+   int sz, tempInt;
+   is >> sz;
+   for(int i=0; i<sz; i++) 
+   {
+      is >> tempInt;
+      vb.push_back(tempInt == 1);
+   }
+   set_vector_bool_(key, vb);
+"""
+
+
 nTypes = len(typelistFull )
 
 typelistType   = [t[0] for t in typelistFull]
@@ -389,7 +431,7 @@ h('\npublic:')
 for T,N in zip(typelistType, typelistName):
    nextCode = \
    """   // Enable datatype %s (%s)
-   %s get_%s_(string key);
+   %s const & get_%s_(string key);
    void set_%s_(string key, %s const & val);
    void write_%s_(string key, ostream & os);
    void read_%s_ (string key, istream & is);
@@ -559,7 +601,7 @@ for RWCode, T,N in zip(typelistRWCode, typelistType, typelistName):
    nextCode = """
 
 // Define get/set/write/read methods for %s (%s)
-%s IOList::get_%s_(string key)
+%s const & IOList::get_%s_(string key)
 {
    assert(map_%s_.find(key) != map_%s_.end());
    return map_%s_[key];
@@ -610,8 +652,8 @@ void IOList::read_%s_(string key, istream & is)
    set_%s_(key, out);
       """ % (T,N)
    elif RWCode == 'CUSTOM':
-      writeCode = '// TODO: ADD CODE FOR READING %s OBJECTS FROM FILE\n' % (T,)
-      readCode = '// TODO: ADD CODE FOR READING %s OBJECTS FROM FILE\n' % (T,)
+      writeCode = customWriteCode[T]
+      readCode  = customReadCode[T]
    else:
       print ''
       print '*** ERROR:  UNKONWN RWCode'

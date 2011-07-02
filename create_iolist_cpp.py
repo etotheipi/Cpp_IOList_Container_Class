@@ -3,7 +3,8 @@ import hashlib
 from sys import argv
 
 
-
+################################################################################
+## Master list of datatypes to be included in the IOList class
 typelistFull = [ ['float',                         'STD_RW'], \
                  ['double',                        'STD_RW'], \
                  ['int',                           'STD_RW'], \
@@ -15,6 +16,47 @@ typelistFull = [ ['float',                         'STD_RW'], \
                  ['vector<int>',                   'ARRAY_1D_SQ_BRKT_STD_RW'], \
                  ['vector<short>',                 'ARRAY_1D_SQ_BRKT_STD_RW'], \
                  ['vector<bool>',                  'CUSTOM'] ]
+
+################################################################################
+## Any classes requiring custom read/write code should be defined here
+##
+## The signatures for the write and read methods are: 
+##    void IOList::write_%s_(string key, ostream & os)
+##    void IOList::read_%s_(string key, istream & is)
+customWriteCode = {}
+customReadCode = {}
+
+customWriteCode['string'] = """
+   os << get_string_(key);
+   """
+customReadCode['string'] = """
+   char temp[256];
+   string out;
+   is >> temp;
+   out = string(temp);
+   set_string_(key, out);
+"""
+
+customWriteCode['vector<bool>'] = """
+   vector<bool> const & vb = get_vector_bool_(key);
+   int sz = (int)vb.size();
+   os << sz << " ";
+   for(int i=0; i<sz; i++)
+      os << vb[i] << " ";
+   """
+customReadCode['vector<bool>'] = """
+   vector<bool> vb(0);
+   int sz, tempInt;
+   is >> sz;
+   for(int i=0; i<sz; i++) 
+   {
+      is >> tempInt;
+      vb.push_back(tempInt == 1);
+   }
+   set_vector_bool_(key, vb);
+"""
+
+
 nTypes = len(typelistFull )
 
 typelistType   = [t[0] for t in typelistFull]
@@ -180,7 +222,7 @@ h('\npublic:')
 for T,N in zip(typelistType, typelistName):
    nextCode = \
    """   // Enable datatype %s (%s)
-   %s get_%s_(string key);
+   %s const & get_%s_(string key);
    void set_%s_(string key, %s const & val);
    void write_%s_(string key, ostream & os);
    void read_%s_ (string key, istream & is);
@@ -350,7 +392,7 @@ for RWCode, T,N in zip(typelistRWCode, typelistType, typelistName):
    nextCode = """
 
 // Define get/set/write/read methods for %s (%s)
-%s IOList::get_%s_(string key)
+%s const & IOList::get_%s_(string key)
 {
    assert(map_%s_.find(key) != map_%s_.end());
    return map_%s_[key];
@@ -401,8 +443,8 @@ void IOList::read_%s_(string key, istream & is)
    set_%s_(key, out);
       """ % (T,N)
    elif RWCode == 'CUSTOM':
-      writeCode = '// TODO: ADD CODE FOR READING %s OBJECTS FROM FILE\n' % (T,)
-      readCode = '// TODO: ADD CODE FOR READING %s OBJECTS FROM FILE\n' % (T,)
+      writeCode = customWriteCode[T]
+      readCode  = customReadCode[T]
    else:
       print ''
       print '*** ERROR:  UNKONWN RWCode'

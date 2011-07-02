@@ -144,7 +144,7 @@ void IOList::readIOList(istream & is)
 
 
 // Define get/set/write/read methods for float (float)
-float IOList::get_float_(string key)
+float const & IOList::get_float_(string key)
 {
    assert(map_float_.find(key) != map_float_.end());
    return map_float_[key];
@@ -172,7 +172,7 @@ void IOList::read_float_(string key, istream & is)
 
 
 // Define get/set/write/read methods for double (double)
-double IOList::get_double_(string key)
+double const & IOList::get_double_(string key)
 {
    assert(map_double_.find(key) != map_double_.end());
    return map_double_[key];
@@ -200,7 +200,7 @@ void IOList::read_double_(string key, istream & is)
 
 
 // Define get/set/write/read methods for int (int)
-int IOList::get_int_(string key)
+int const & IOList::get_int_(string key)
 {
    assert(map_int_.find(key) != map_int_.end());
    return map_int_[key];
@@ -228,7 +228,7 @@ void IOList::read_int_(string key, istream & is)
 
 
 // Define get/set/write/read methods for short (short)
-short IOList::get_short_(string key)
+short const & IOList::get_short_(string key)
 {
    assert(map_short_.find(key) != map_short_.end());
    return map_short_[key];
@@ -256,7 +256,7 @@ void IOList::read_short_(string key, istream & is)
 
 
 // Define get/set/write/read methods for bool (bool)
-bool IOList::get_bool_(string key)
+bool const & IOList::get_bool_(string key)
 {
    assert(map_bool_.find(key) != map_bool_.end());
    return map_bool_[key];
@@ -284,7 +284,7 @@ void IOList::read_bool_(string key, istream & is)
 
 
 // Define get/set/write/read methods for string (string)
-string IOList::get_string_(string key)
+string const & IOList::get_string_(string key)
 {
    assert(map_string_.find(key) != map_string_.end());
    return map_string_[key];
@@ -298,19 +298,25 @@ void IOList::set_string_(string key, string const & val)
 }
 void IOList::write_string_(string key, ostream & os)
 {
-   // TODO: ADD CODE FOR READING string OBJECTS FROM FILE
-
+   
+   os << get_string_(key);
+   
 }
 void IOList::read_string_(string key, istream & is)
 {
-   // TODO: ADD CODE FOR READING string OBJECTS FROM FILE
+   
+   char temp[256];
+   string out;
+   is >> temp;
+   out = string(temp);
+   set_string_(key, out);
 
 }
    
 
 
 // Define get/set/write/read methods for vector_float (vector<float>)
-vector<float> IOList::get_vector_float_(string key)
+vector<float> const & IOList::get_vector_float_(string key)
 {
    assert(map_vector_float_.find(key) != map_vector_float_.end());
    return map_vector_float_[key];
@@ -346,7 +352,7 @@ void IOList::read_vector_float_(string key, istream & is)
 
 
 // Define get/set/write/read methods for vector_double (vector<double>)
-vector<double> IOList::get_vector_double_(string key)
+vector<double> const & IOList::get_vector_double_(string key)
 {
    assert(map_vector_double_.find(key) != map_vector_double_.end());
    return map_vector_double_[key];
@@ -382,7 +388,7 @@ void IOList::read_vector_double_(string key, istream & is)
 
 
 // Define get/set/write/read methods for vector_int (vector<int>)
-vector<int> IOList::get_vector_int_(string key)
+vector<int> const & IOList::get_vector_int_(string key)
 {
    assert(map_vector_int_.find(key) != map_vector_int_.end());
    return map_vector_int_[key];
@@ -418,7 +424,7 @@ void IOList::read_vector_int_(string key, istream & is)
 
 
 // Define get/set/write/read methods for vector_short (vector<short>)
-vector<short> IOList::get_vector_short_(string key)
+vector<short> const & IOList::get_vector_short_(string key)
 {
    assert(map_vector_short_.find(key) != map_vector_short_.end());
    return map_vector_short_[key];
@@ -454,7 +460,7 @@ void IOList::read_vector_short_(string key, istream & is)
 
 
 // Define get/set/write/read methods for vector_bool (vector<bool>)
-vector<bool> IOList::get_vector_bool_(string key)
+vector<bool> const & IOList::get_vector_bool_(string key)
 {
    assert(map_vector_bool_.find(key) != map_vector_bool_.end());
    return map_vector_bool_[key];
@@ -468,12 +474,26 @@ void IOList::set_vector_bool_(string key, vector<bool> const & val)
 }
 void IOList::write_vector_bool_(string key, ostream & os)
 {
-   // TODO: ADD CODE FOR READING vector<bool> OBJECTS FROM FILE
-
+   
+   vector<bool> const & vb = get_vector_bool_(key);
+   int sz = (int)vb.size();
+   os << sz << " ";
+   for(int i=0; i<sz; i++)
+      os << vb[i] << " ";
+   
 }
 void IOList::read_vector_bool_(string key, istream & is)
 {
-   // TODO: ADD CODE FOR READING vector<bool> OBJECTS FROM FILE
+   
+   vector<bool> vb(0);
+   int sz, tempInt;
+   is >> sz;
+   for(int i=0; i<sz; i++) 
+   {
+      is >> tempInt;
+      vb.push_back(tempInt == 1);
+   }
+   set_vector_bool_(key, vb);
 
 }
    

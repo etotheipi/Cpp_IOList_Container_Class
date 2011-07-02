@@ -14,6 +14,7 @@ int main(void)
    iol.set_int_("someInt", 3);
    iol.set_bool_("falsebool", 1>2); 
    iol.set_bool_("truebool", 1<2); 
+   iol.set_string_("a_str", "hello");
 
    vector<int> vi(5);
    for(int i=0; i<5; i++)
@@ -50,19 +51,21 @@ int main(void)
    cout << "bool false: " << iol.get_bool_("falsebool") << endl;
    cout << "bool true: " << iol.get_bool_("truebool") << endl;
 
+   vector<bool> vb(5);
+   for(int i=0; i<5; i++)
+      vb[i] = (3*i + 32) > 38;
+
+   iol.set_vector_bool_("boolvect", vb);
+
    cout << endl << endl << endl;
    cout << "Testing writeIOList method!" << endl << endl;
-
    iol.writeIOList(cout);
-   
    cout << endl << endl << endl;
+
    cout << "Testing writing list to file" << endl << endl;
-
    iol.writeIOList("IOListToFile.txt");
-
    IOList iol2;
    iol2.readIOList("IOListToFile.txt");
-
    iol2.writeIOList(cout);
 
 
