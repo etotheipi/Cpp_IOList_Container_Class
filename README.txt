@@ -40,7 +40,7 @@ of only a single IOList object:
 Later, the values can be recovered in any order by knowing the type/name:
 
    int nPart = iol.get_int_("numParticles");
-   float grav = iol.get_int_("gravity_m_per_s2");
+   float grav = iol.get_float_("gravity_m_per_s2");
    vector<string> vs = iol.get_vector_string_("particleNames");
 
 

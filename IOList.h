@@ -22,7 +22,9 @@ using namespace std;
 //  end of this file
 //
 //  -----------------------------------------------
-//  VERSION_HASH:  aeba7045
+//  TYPELIST_HASH:  aeba7045
+//  LAST_COMPILE:   03 Jul, 2011
+//  VERSION_NUMBER: 0.010
 //  -----------------------------------------------
 //
 //  The version hash is created by concatenating all types in the python
@@ -210,20 +212,25 @@ public:
 from os import path
 import hashlib
 from sys import argv
+from datetime import datetime
 
+
+# Hardcode the version major number up here, minor number will auto-increment
+versionMajorNumber = 0
+versionString = ''
 
 ################################################################################
 ## Master list of datatypes to be included in the IOList class
-typelistFull = [ ['float',                         'STD_RW'], \
-                 ['double',                        'STD_RW'], \
-                 ['int',                           'STD_RW'], \
-                 ['short',                         'STD_RW'], \
-                 ['bool',                          'STD_RW'], \
+typelistFull = [ ['float',                         'STD_OP<<>>'], \
+                 ['double',                        'STD_OP<<>>'], \
+                 ['int',                           'STD_OP<<>>'], \
+                 ['short',                         'STD_OP<<>>'], \
+                 ['bool',                          'STD_OP<<>>'], \
                  ['string',                        'CUSTOM'], \
-                 ['vector<float>',                 'ARRAY_1D_SQ_BRKT_STD_RW'], \
-                 ['vector<double>',                'ARRAY_1D_SQ_BRKT_STD_RW'], \
-                 ['vector<int>',                   'ARRAY_1D_SQ_BRKT_STD_RW'], \
-                 ['vector<short>',                 'ARRAY_1D_SQ_BRKT_STD_RW'], \
+                 ['vector<float>',                 'ARRAY_1D_SQ_BRKT_STD_OP<<>>'], \
+                 ['vector<double>',                'ARRAY_1D_SQ_BRKT_STD_OP<<>>'], \
+                 ['vector<int>',                   'ARRAY_1D_SQ_BRKT_STD_OP<<>>'], \
+                 ['vector<short>',                 'ARRAY_1D_SQ_BRKT_STD_OP<<>>'], \
                  ['vector<bool>',                  'CUSTOM'] ]
 
 ################################################################################
@@ -282,13 +289,41 @@ for tp in typelistFull :
    typelistName.append(t)
 
 
-versionHash = '00000000'
+################################################################################
+# Here's the fun part, since we are automatically generating the C++ sources
+# we can tag the file with a hardcoded hash of the supported datatypes, add
+# the date the script was last run, and increment a version number
+
+# Create a hash
+typelistHash = '00000000'  # default value
 try:
    import hashlib
-   versionHash = hashlib.md5('_'.join(typelistType)).hexdigest()[:8]
+   typelistHash = hashlib.md5('_'.join(typelistType)).hexdigest()[:8]
 except(ImportError):
    print '***WARNING: hashlib module not present, cannot enable version-checking'
 
+# Read the existing .h file and get the last version number
+h = open('IOList.h','r')
+hlines = h.readlines()
+h.close()
+versionDone = False;
+for l in hlines:
+   if 'VERSION_NUMBER' in l and not versionDone:
+      vstr = l.strip().split(':')[-1].strip()
+      minorStr = vstr.split('.')[-1].strip()
+      versionMinorNumber = int(minorStr)
+      versionString = "%d.%03d" % (versionMajorNumber, versionMinorNumber+1)
+      versionDone = True
+
+      
+# Get the current date
+dateString = datetime.now().strftime('%d %b, %Y')
+
+print '\thash: ', typelistHash
+print '\tdate: ', dateString
+print '\tvers: ', versionString
+
+################################################################################
 
 
 dot_h = open('IOList.h','w')
@@ -320,7 +355,9 @@ using namespace std;
 //  end of this file
 //
 //  -----------------------------------------------
-//  VERSION_HASH:  %s
+//  TYPELIST_HASH:  %s
+//  LAST_COMPILE:   %s
+//  VERSION_NUMBER: %s
 //  -----------------------------------------------
 //
 //  The version hash is created by concatenating all types in the python
@@ -376,7 +413,7 @@ typedef enum
 {
 """
 
-h(nextCode % (versionHash,))
+h(nextCode % (typelistHash,dateString,versionString))
 
 
 for n in typelistName:
@@ -418,7 +455,7 @@ public:
 private:
 """
 
-h(nextCode % (versionHash, versionHash))
+h(nextCode % (typelistHash, typelistHash))
 
 for T,N in zip(typelistType, typelistName):
    h('   map< string, %s > map_%s_;' % (T,N))
@@ -640,7 +677,7 @@ void IOList::read_%s_(string key, istream & is)
    writeCode = ''
    readCode  = ''
    
-   if RWCode == 'STD_RW':
+   if RWCode == 'STD_OP<<>>':
       writeCode = "os << get_%s_(key);" % (N,)
       readCode  = \
       """
@@ -648,7 +685,7 @@ void IOList::read_%s_(string key, istream & is)
    is >> out;
    set_%s_(key, out); 
       """ % (T,N)
-   elif RWCode == 'ARRAY_1D_SQ_BRKT_STD_RW':
+   elif RWCode == 'ARRAY_1D_SQ_BRKT_STD_OP<<>>':
       writeCode = \
       """
    int sz = (int)get_%s_(key).size();
@@ -666,8 +703,12 @@ void IOList::read_%s_(string key, istream & is)
    set_%s_(key, out);
       """ % (T,N)
    elif RWCode == 'CUSTOM':
-      writeCode = customWriteCode[T]
-      readCode  = customReadCode[T]
+      try:
+         writeCode = customWriteCode[T]
+         readCode  = customReadCode[T]
+      except(KeyError):
+         print '*** ERROR:  No read/write method (custom) defined for datatype:', T
+         exit(0)
    else:
       print ''
       print '*** ERROR:  UNKONWN RWCode'
